@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Dataset — too large for git (use git-lfs or external storage)
+raw_data/
+
+
+# OS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/

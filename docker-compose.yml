@@ -1,0 +1,70 @@
+# ── DermaSense — Docker Compose ───────────────────────────────────────────────
+#
+# Services:
+#   train  — fine-tune DenseNet-121 on HAM10000 (reads raw_data/, writes models/)
+#   infer  — run inference on a single image or batch directory
+#
+# Usage:
+#   Training (GPU):
+#       docker compose run train
+#
+#   Training (CPU only — remove the 'deploy' block or use --no-deps):
+#       docker compose run --no-deps train
+#
+#   Inference on a single image:
+#       IMAGE=/app/data/lesion.jpg docker compose run infer
+#
+#   Inference on a directory (batch):
+#       docker compose run infer python src/infer.py --batch /app/data/
+#
+# Notes:
+#   - raw_data/ is mounted read-only — the dataset is NEVER copied into the image
+#   - models/   is mounted read-write — trained weights persist on the host
+#   - Apple Silicon (M1/M2/M3): Docker on Mac runs in a Linux VM without GPU
+#     access. Run training natively with `python src/train.py` to use MPS.
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # # ── Training service ──────────────────────────────────────────────────────
+  # train:
+  #   build: .
+  #   image: dermasense:latest
+  #   volumes:
+  #     - ./raw_data:/app/raw_data:ro   # dataset (read-only)
+  #     - ./models:/app/models           # output weights (read-write)
+  #   command: python src/train.py
+  #   # GPU passthrough (NVIDIA only — requires nvidia-container-toolkit).
+  #   # Remove the 'deploy' block entirely to run on CPU.
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: all
+  #             capabilities: [ gpu ]
+
+  # # ── Inference CLI service ─────────────────────────────────────────────────
+  # infer:
+  #   build: .
+  #   image: dermasense:latest
+  #   volumes:
+  #     - ./models:/app/models:ro        # trained weights (read-only)
+  #     - ./data:/app/data:ro            # folder with images to analyse
+  #   environment:
+  #     - IMAGE=${IMAGE:-/app/data/sample.jpg}
+  #   command: python src/infer.py ${IMAGE:-/app/data/sample.jpg}
+
+  # ── API service ──────────────────────────────────────────────────────────
+  api:
+    build: .
+    image: dermasense:latest
+    ports:
+      - "${API_PORT:-8000}:8000"
+    environment:
+      - UVICORN_WORKERS=${UVICORN_WORKERS:-1}
+    command: >
+      uvicorn src.api:app
+      --host 0.0.0.0
+      --port 8000
+    restart: unless-stopped

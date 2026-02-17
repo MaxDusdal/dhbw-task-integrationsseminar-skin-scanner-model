@@ -1,0 +1,29 @@
+# Exclude large/generated directories from the Docker build context.
+# Without this, Docker would send gigabytes of data to the daemon on every build.
+
+# Virtual environment (~1-3 GB)
+venv/
+.venv/
+env/
+
+# Dataset (~2 GB) — mounted as a volume at runtime, never baked into the image
+raw_data/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Git
+.git/
+.gitignore
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# Docs / specs
+*.md
